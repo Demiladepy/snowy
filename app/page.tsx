@@ -2,6 +2,7 @@ import Link from 'next/link'
 import {DiscoverButton} from '@/components/block/discover-button'
 import {FlipText} from '@/components/block/flip-text'
 import RuleMarquee from './components/RuleMarquee'
+import {Dart, HeroBoard} from './components/Dart'
 import {Eyebrow, RuleText} from './components/text'
 import {loadDocsFindings, loadRules} from '@/lib/rules'
 import {publicDatasetUrl} from '@/lib/sanity'
@@ -24,37 +25,57 @@ const TUTORIAL = [
 
 function Hero() {
   return (
-    <section className="mx-auto max-w-[1200px] px-4 pt-16 text-center md:px-6 md:pt-24">
-      <span className="inline-flex items-center gap-2 rounded-full border border-mist bg-linen px-3 py-1 text-[13px] font-medium text-charcoal">
-        <span className="h-1.5 w-1.5 rounded-full bg-signal" />
-        Sanity Challenge · built on Sanity Context
-      </span>
-      <h1 className="font-serif mx-auto mt-6 max-w-4xl text-[44px] leading-[1.05] text-graphite md:text-[72px]">
-        Your apiVersion is a promise.
-        <br />
-        Pinned reads the{' '}
-        <FlipText className="text-signal" duration={2.6}>
-          fine print.
-        </FlipText>
-      </h1>
-      <p className="mx-auto mt-6 max-w-2xl text-[18px] leading-[1.55] text-ash md:text-[20px]">
-        Paste a Sanity client config. See what it does <em>today</em> at the version you pinned, what silently changes when you bump
-        it, and where Sanity’s own docs disagree with themselves, with every claim cited.
-      </p>
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-        <DiscoverButton label="Run the demo ops" href="/analyze" />
-        <a href="#problem" className="text-[15px] font-medium text-charcoal underline decoration-fog underline-offset-4 hover:decoration-charcoal">
-          Why this exists ↓
-        </a>
+    <section className="hero-canvas border-b border-mist">
+      <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-center gap-10 px-4 pb-16 pt-14 md:px-6 md:pb-20 md:pt-20 lg:grid-cols-[1.25fr_1fr]">
+        <div className="text-center lg:text-left">
+          <span className="inline-flex items-center gap-2 rounded-full border border-mist bg-white px-3 py-1 text-[13px] font-medium text-charcoal shadow-[var(--shadow-diagram)]">
+            <Dart size={16} />
+            Sanity Challenge · built on Sanity Context
+          </span>
+          <h1 className="font-serif mt-6 text-[42px] leading-[1.04] text-graphite md:text-[64px]">
+            Your apiVersion is a promise. Pinned reads the{' '}
+            <FlipText className="text-brand" duration={2.6}>
+              fine print.
+            </FlipText>
+          </h1>
+          <p className="mx-auto mt-6 max-w-xl text-[18px] leading-[1.55] text-ash lg:mx-0">
+            Paste a Sanity client config. See what it does <em>today</em> at the version you pinned, what silently changes when you bump
+            it, and where Sanity’s own docs disagree with themselves, with every claim cited.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3 lg:justify-start">
+            <DiscoverButton label="Run the demo ops" href="/analyze" />
+            <a
+              href="#problem"
+              className="inline-flex h-[66px] items-center rounded-full border border-mist bg-white px-6 text-[16px] font-semibold text-graphite transition-colors hover:bg-linen"
+            >
+              Why this exists
+            </a>
+          </div>
+          <dl className="mx-auto mt-10 grid max-w-md grid-cols-3 gap-4 text-left lg:mx-0">
+            {[
+              ['14', 'rules as content'],
+              ['15/15', 'eval cases exact'],
+              ['3', 'docs findings'],
+            ].map(([n, l]) => (
+              <div key={l} className="border-l-2 border-brand pl-3">
+                <dt className="text-[22px] font-bold text-graphite">{n}</dt>
+                <dd className="text-[12px] text-ash">{l}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <HeroBoard />
       </div>
-      <ProductPreview />
+      <div className="mx-auto max-w-[1200px] px-4 pb-16 md:px-6">
+        <ProductPreview />
+      </div>
     </section>
   )
 }
 
 function ProductPreview() {
   return (
-    <div className="mx-auto mt-14 max-w-5xl overflow-hidden rounded-2xl border border-mist bg-white text-left shadow-[var(--shadow-card)]">
+    <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-mist bg-white text-left shadow-[var(--shadow-card)]">
       <div className="flex items-center gap-2 border-b border-mist bg-linen px-4 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-fog" />
         <span className="h-2.5 w-2.5 rounded-full bg-fog" />
@@ -392,7 +413,7 @@ function Cta() {
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
           <DiscoverButton label="Open Pinned" href="/analyze" />
-          <a href={publicDatasetUrl} target="_blank" rel="noreferrer" className="text-[15px] font-medium text-charcoal underline decoration-fog underline-offset-4 hover:decoration-charcoal">
+          <a href={publicDatasetUrl} target="_blank" rel="noreferrer" className="inline-flex h-[66px] items-center rounded-full border border-mist bg-white px-6 text-[16px] font-semibold text-graphite transition-colors hover:bg-white/60">
             Query the public dataset ↗
           </a>
         </div>

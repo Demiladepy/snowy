@@ -26,8 +26,10 @@
   --color-ok: #0f7b6c;
   --color-ok-bg: #ddedea;
 
+  --color-brand: #e5383b; /* dart flight red */
+  --color-brand-bg: #fff1f0;
   --obsidian-discover-surface: #f1f1ef;
-  --obsidian-discover-fill: #191919;
+  --obsidian-discover-fill: #e5383b;
   --obsidian-discover-text: #191919;
   --obsidian-discover-active-text: #ffffff;
   --ring: #2383e2;
@@ -55,6 +57,8 @@
   --color-info-bg: var(--color-info-bg);
   --color-ok: var(--color-ok);
   --color-ok-bg: var(--color-ok-bg);
+  --color-brand: var(--color-brand);
+  --color-brand-bg: var(--color-brand-bg);
 
   --font-sans: 'Inter Variable', 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
@@ -106,4 +110,38 @@ code {
 @media (prefers-reduced-motion: reduce) {
   .flip-char { animation: none; }
   html { scroll-behavior: auto; }
+}
+
+/* Hero: clean dotted canvas with a soft brand glow */
+.hero-canvas {
+  background-image:
+    radial-gradient(600px 300px at 80% 30%, rgba(229, 56, 59, 0.08), transparent 70%),
+    radial-gradient(500px 260px at 10% 80%, rgba(35, 131, 226, 0.05), transparent 70%),
+    radial-gradient(circle, #e2e1de 1px, transparent 1.2px);
+  background-size: auto, auto, 22px 22px;
+}
+
+/* The dart flies in and lands, then the tag appears */
+.pinned-dart {
+  transform-origin: 18% 82%;
+  animation: dart-in 900ms cubic-bezier(0.2, 0.9, 0.25, 1) 250ms both, dart-wobble 600ms ease-out 1150ms both;
+}
+@keyframes dart-in {
+  from { transform: translate(140px, -160px) rotate(-8deg); opacity: 0; }
+  60% { opacity: 1; }
+  to { transform: translate(0, 0) rotate(0); opacity: 1; }
+}
+@keyframes dart-wobble {
+  0% { transform: rotate(0); }
+  30% { transform: rotate(3deg); }
+  60% { transform: rotate(-1.5deg); }
+  100% { transform: rotate(0); }
+}
+.pinned-tag { animation: tag-in 400ms ease-out 1300ms both; }
+@keyframes tag-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pinned-dart, .pinned-tag { animation: none; }
 }

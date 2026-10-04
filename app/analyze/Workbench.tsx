@@ -542,7 +542,7 @@ export default function Workbench({rules, rulesOrigin}: {rules: Rule[]; rulesOri
           <button
             onClick={() => void analyze()}
             disabled={!canAnalyze}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-graphite px-4 py-2.5 text-[15px] font-medium text-white transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-graphite px-4 py-3 text-[15px] font-medium text-white transition-opacity hover:bg-brand disabled:cursor-not-allowed disabled:opacity-30"
           >
             {busy ? 'Analyzing…' : 'Analyze →'}
           </button>
@@ -649,7 +649,7 @@ export default function Workbench({rules, rulesOrigin}: {rules: Rule[]; rulesOri
         <p className="mt-1 text-[13px] text-ash">Answers come from the Knowledge Base built on Sanity’s docs, and from Pinned’s rules.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {['What exactly changes if I bump to 2025-02-19?', 'Why is previewDrafts deprecated?', 'How do I preview a Content Release?'].map((q) => (
-            <button key={q} onClick={() => setQuestion(q)} className="rounded-lg border border-mist bg-linen px-3 py-1 text-[13px] text-charcoal hover:border-fog">
+            <button key={q} onClick={() => setQuestion(q)} className="rounded-full border border-mist bg-linen px-3 py-1 text-[13px] text-charcoal hover:border-fog">
               {q}
             </button>
           ))}
@@ -697,7 +697,7 @@ export default function Workbench({rules, rulesOrigin}: {rules: Rule[]; rulesOri
             aria-label="Follow-up question"
             className="min-w-0 flex-1 border-0 border-b border-charcoal bg-linen px-3 py-2.5 text-[15px] text-charcoal outline-none placeholder:text-fog focus:border-twilight"
           />
-          <button disabled={chatBusy || !question.trim()} className="rounded-lg border border-twilight bg-dusk px-4 py-2 text-[15px] font-medium text-white disabled:opacity-40">
+          <button disabled={chatBusy || !question.trim()} className="rounded-full bg-graphite px-5 py-2.5 transition-colors hover:bg-brand text-[15px] font-medium text-white disabled:opacity-40">
             Ask
           </button>
         </form>

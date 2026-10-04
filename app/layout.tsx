@@ -1,5 +1,6 @@
 import type {Metadata} from 'next'
 import Link from 'next/link'
+import {Dart} from './components/Dart'
 import '@fontsource-variable/inter'
 import '@fontsource-variable/jetbrains-mono'
 import {projectId, publicDatasetUrl} from '@/lib/sanity'
@@ -17,7 +18,7 @@ function Nav() {
     <header className="sticky top-0 z-50 border-b border-mist bg-white/90 backdrop-blur">
       <nav className="mx-auto flex h-14 max-w-[1200px] items-center gap-1 px-4 md:px-6">
         <Link href="/" className="mr-4 flex items-center gap-2 text-[15px] font-semibold text-graphite">
-          <span className="grid h-6 w-6 place-items-center rounded-md bg-graphite text-[13px] font-bold text-white">P</span>
+          <Dart size={28} />
           Pinned
         </Link>
         <Link href="/analyze" className="rounded-md px-2.5 py-1.5 text-[14px] font-medium text-charcoal hover:bg-linen">
@@ -31,7 +32,7 @@ function Nav() {
         </Link>
         <Link
           href="/analyze"
-          className="ml-auto rounded-md bg-graphite px-3 py-1.5 text-[14px] font-medium text-white transition-opacity hover:opacity-85"
+          className="ml-auto rounded-full bg-graphite px-4 py-1.5 text-[14px] font-medium text-white transition-colors hover:bg-brand"
         >
           <span className="sm:hidden">Demo</span>
           <span className="hidden sm:inline">Run the demo</span>
