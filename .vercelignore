@@ -1,0 +1,9 @@
+.env*
+!.env.example
+node_modules
+.next
+studio/node_modules
+studio/dist
+studio/.sanity
+.claude
+kb-sources

@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/* Editorial light theme: parchment canvas, serif display, hairline green-gray borders, one signal blue. */
+:root {
+  --color-parchment: #fefffc;
+  --color-paper: #ffffff;
+  --color-linen: #f9faf7;
+  --color-ink-black: #171717;
+  --color-graphite: #2c2c2c;
+  --color-charcoal: #444141;
+  --color-ash: #646464;
+  --color-fog: #b4b8b4;
+  --color-mist: #dee2de;
+  --color-twilight: #282834;
+  --color-dusk: #1f1f29;
+  --color-signal-blue: #41a1cf;
+  --color-cerulean: #0081c0;
+
+  /* Severity: muted so the page stays 95% neutral */
+  --color-critical: #a8321f;
+  --color-critical-bg: #fbefec;
+  --color-warning: #85600a;
+  --color-warning-bg: #faf4e4;
+  --color-info: #2b7ea8;
+  --color-info-bg: #eef6fa;
+}
+
+@theme inline {
+  --color-parchment: var(--color-parchment);
+  --color-paper: var(--color-paper);
+  --color-linen: var(--color-linen);
+  --color-ink: var(--color-ink-black);
+  --color-graphite: var(--color-graphite);
+  --color-charcoal: var(--color-charcoal);
+  --color-ash: var(--color-ash);
+  --color-fog: var(--color-fog);
+  --color-mist: var(--color-mist);
+  --color-twilight: var(--color-twilight);
+  --color-dusk: var(--color-dusk);
+  --color-signal: var(--color-signal-blue);
+  --color-cerulean: var(--color-cerulean);
+  --color-critical: var(--color-critical);
+  --color-critical-bg: var(--color-critical-bg);
+  --color-warning: var(--color-warning);
+  --color-warning-bg: var(--color-warning-bg);
+  --color-info: var(--color-info);
+  --color-info-bg: var(--color-info-bg);
+
+  --font-serif: var(--font-display), 'Fraunces', Georgia, serif;
+  --font-sans: var(--font-ui), 'Inter', system-ui, sans-serif;
+  --font-mono: var(--font-code), ui-monospace, monospace;
+
+  --shadow-card: rgba(0, 0, 0, 0.08) 0px 1px 1px 0px, rgba(0, 0, 0, 0.08) 0px 4px 5px 0px;
+  --shadow-nav: rgba(0, 0, 0, 0.15) 0px 2px 6px 0px;
+  --shadow-diagram: rgba(0, 0, 0, 0.05) 0px 1px 8px 0px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-parchment);
+  color: var(--color-charcoal);
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+}
+
+.font-serif {
+  font-feature-settings: 'liga' 0;
+  font-weight: 400;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+/* Rule-chip marquee */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 60s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* Painted night sky: layered gradients stand in for an illustration */
+.sky {
+  background:
+    radial-gradient(1200px 500px at 85% 115%, rgba(65, 161, 207, 0.55), transparent 60%),
+    radial-gradient(700px 380px at 12% -10%, rgba(255, 255, 255, 0.16), transparent 60%),
+    radial-gradient(2px 2px at 20% 30%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(1.5px 1.5px at 62% 18%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(1.5px 1.5px at 78% 40%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(2px 2px at 40% 12%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(1px 1px at 90% 22%, rgba(255, 255, 255, 0.8), transparent 60%),
+    linear-gradient(180deg, #1f1f29 0%, #22314a 45%, #0081c0 130%);
+}

@@ -1,0 +1,40 @@
+{
+  "name": "pinned",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "seed": "node --env-file=.env.local --import tsx scripts/seed-rules.ts",
+    "eval": "node --env-file-if-exists=.env.local --import tsx evals/run.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.71",
+    "@ai-sdk/mcp": "^2.0.66",
+    "@babel/parser": "^7.29.9",
+    "@sanity/client": "^8.9.0",
+    "ai": "^7.0.127",
+    "next": "16.3.8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "semver": "^7.8.5",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@babel/types": "^8.0.6",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/semver": "^7.8.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.3"
+  }
+}
