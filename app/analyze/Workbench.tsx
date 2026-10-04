@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import {useMemo, useRef, useState} from 'react'
-import {Linkified, RuleText} from '../components/text'
+import {ModelText, RuleText} from '../components/text'
 import {DEMO_OPS, TIME_MACHINE_STOPS, type DemoOp} from '@/lib/demos'
 import {evaluate} from '@/lib/engine'
 import {extractFacts} from '@/lib/facts'
@@ -129,9 +129,9 @@ function FindingCard({finding, explanation, highlight}: {finding: Finding; expla
             From the Knowledge Base {explanation.status === 'streaming' ? '· writing…' : ''}
           </div>
           {explanation.text ? (
-            <p className="whitespace-pre-wrap text-charcoal">
-              <Linkified text={explanation.text} />
-            </p>
+            <div className="text-charcoal">
+              <ModelText text={explanation.text} />
+            </div>
           ) : explanation.status === 'streaming' ? (
             <p className="text-ash">Reading entries…</p>
           ) : null}
@@ -661,9 +661,9 @@ export default function Workbench({rules, rulesOrigin}: {rules: Rule[]; rulesOri
                 </p>
               ) : (
                 <div key={i} className="border-l-2 border-mist pl-4 text-[15px] leading-[1.6] text-charcoal">
-                  <p className="whitespace-pre-wrap">
-                    <Linkified text={m.content || (chatBusy && i === chat.length - 1 ? '…' : '')} />
-                  </p>
+                  <div>
+                    <ModelText text={m.content || (chatBusy && i === chat.length - 1 ? '…' : '')} />
+                  </div>
                   {m.kbPaths?.length ? (
                     <details className="mt-1 text-[13px] text-ash">
                       <summary className="cursor-pointer">Sources read ({m.kbPaths.length})</summary>

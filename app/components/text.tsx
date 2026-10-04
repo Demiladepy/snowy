@@ -34,6 +34,38 @@ export function Linkified({text}: {text: string}) {
   )
 }
 
+/** Minimal Markdown for model answers: **bold**, `code`, bare URLs, and "- " bullets. */
+export function ModelText({text}: {text: string}) {
+  const inline = (s: string, k: string) =>
+    s.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((p, i) =>
+      p.startsWith('**') && p.endsWith('**') && p.length > 4 ? (
+        <strong key={`${k}-${i}`} className="font-semibold text-graphite">
+          {p.slice(2, -2)}
+        </strong>
+      ) : p.startsWith('`') && p.endsWith('`') && p.length > 2 ? (
+        <code key={`${k}-${i}`} className="rounded border border-mist bg-paper px-1 text-graphite">
+          {p.slice(1, -1)}
+        </code>
+      ) : (
+        <Linkified key={`${k}-${i}`} text={p} />
+      ),
+    )
+  return (
+    <>
+      {text.split('\n').map((line, i) => {
+        const bullet = /^\s*[-*]\s+/.test(line)
+        const body = line.replace(/^\s*[-*]\s+/, '').replace(/^#+\s*/, '')
+        return (
+          <span key={i} className={bullet ? 'block pl-4 -indent-3' : 'block min-h-[0.8em]'}>
+            {bullet ? '• ' : ''}
+            {inline(body, String(i))}
+          </span>
+        )
+      })}
+    </>
+  )
+}
+
 export function Eyebrow({children}: {children: React.ReactNode}) {
   return <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-ash">{children}</p>
 }
