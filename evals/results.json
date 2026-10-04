@@ -22,31 +22,23 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "apiVersion '2023-05-03' is outdated and pinned before the 2025-02-19 default-perspective change. At that version the default perspective is 'raw', so with a token the client can return draft documents and versions mixed with published ones. Update the apiVersion to a recent date and/or set `perspective: 'published'` explicitly.",
+              "issue": "apiVersion '2023-05-03' predates the 2025-02-19 change that made 'published' the default perspective. On older versions the default is 'raw', so queries made with the read token can return draft documents alongside published ones, which can leak unpublished content or produce duplicates. Set `perspective: 'published'` explicitly, or bump apiVersion to 2025-02-19 or later after checking the other behavior changes.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "No explicit `perspective` is set. With an authenticated token and a pre-2025-02-19 apiVersion, queries use 'raw' and can leak draft content into production pages or produce duplicate documents (drafts.* and published). Set `perspective: 'published'` for production and switch to 'drafts' or 'previewDrafts' only in draft or preview mode.",
-              "apiVersionBoundary": "2025-02-19"
-            },
-            {
-              "issue": "`useCdn: false` is hardcoded, so every production request bypasses the API CDN. This costs latency and API request quota for public published content. Use `useCdn: process.env.NODE_ENV === 'production'` for published content, or keep a separate non-CDN client only for previews and draft fetches. Note that the CDN is not used with the 'drafts' perspective or with a token in some setups.",
+              "issue": "projectId and dataset come from process.env and are typed `string | undefined`, with no validation or assertion. A missing variable fails at runtime with an unclear error and may not type-check. Add a helper that throws if a variable is missing.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The read token is attached to a client that is exported for general use. If this module is imported into a client component, the token can leak into the browser bundle or the client will silently fail. The env var is not NEXT_PUBLIC_, so it will be undefined in the browser. Keep the token on a server-only client (for example `import 'server-only'`) and use a separate tokenless client for public fetches.",
+              "issue": "A single shared client has `useCdn: false` and a token. Public published-content fetches therefore bypass the API CDN and pay for uncached requests. Consider a separate CDN-enabled client without a token for public reads, and keep the token-bearing client for draft mode and preview only.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "projectId and dataset are read from process.env without validation. They are typed `string | undefined`, which causes TypeScript errors or a runtime failure like 'Configuration must contain projectId' if the vars are missing. Add an assertion helper or a fallback that throws a clear error.",
+              "issue": "The token is read from SANITY_API_READ_TOKEN, which is correctly not NEXT_PUBLIC_, but it lives in a client module that may be imported from client components. That would either fail with an undefined token or tempt someone to expose it. Mark the file `server-only` or split server and browser clients.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The token is optional and unchecked. If SANITY_API_READ_TOKEN is missing, the client silently falls back to unauthenticated requests, so private datasets would fail and draft or preview behavior would change without any warning. Validate it, or only pass it where it is needed.",
-              "apiVersionBoundary": null
-            },
-            {
-              "issue": "No stega or `studioUrl` configuration is present. If you use Visual Editing or Presentation, add `stega: { studioUrl }` (enabled only for preview) so click-to-edit overlays work. Otherwise this can be ignored.",
+              "issue": "No `stega` or `studioUrl` configuration is set, so Visual Editing and click-to-edit overlays will not work in draft mode. Also, with no explicit perspective, preview and draft handling is ambiguous. Configure `perspective: 'drafts'` (or 'previewDrafts' on older versions) only for draft-mode fetches.",
               "apiVersionBoundary": null
             }
           ]
@@ -69,31 +61,27 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "No apiVersion is set. The client falls back to the legacy v1 API and logs a warning, so behavior is not pinned and can change. Set an explicit date-based apiVersion, for example '2025-02-19' or a later one.",
+              "issue": "Missing `apiVersion`. The client falls back to the legacy default API version (v1) and logs a warning, so behavior can change unexpectedly. Pin an explicit date such as '2025-02-19'.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "No perspective is set. With an authenticated token, queries on API versions before 2025-02-19 default to the 'raw' perspective, which returns draft and published documents together and can produce duplicates or leak unpublished content. From 2025-02-19 the default is 'published'. Set perspective explicitly ('published' for production reads, 'previewDrafts' or 'drafts' for previews).",
+              "issue": "No `perspective` is set. For apiVersion before 2025-02-19 the default perspective is `raw`, so queries can return both draft and published documents (including `drafts.` IDs). From 2025-02-19 the default is `published`. Set `perspective` explicitly (e.g. 'published') to get consistent results.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "A token is configured with no stated scope, and the client is exported from a shared module. If this module is bundled into browser code, the token leaks. Use a least-privilege read-only token, or a separate write client used only on the server, and never ship the token to the client side.",
+              "issue": "A token is configured on a shared, exported client. If this module is imported in browser code, the token will be bundled and leaked. Keep authenticated clients server-only, use a read-only token if writes are not needed, and use a separate tokenless client with `useCdn: true` for public reads.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "process.env.SANITY_TOKEN is not validated. If it is undefined, the client silently falls back to unauthenticated requests, which causes confusing 401 errors or missing private data. Fail fast when it is missing.",
+              "issue": "`useCdn: false` combined with a token means every request hits the live API, which is slower and higher cost. That is fine for fresh or draft reads but should be intentional. Public published content should use the CDN with a tokenless client.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "useCdn: false is set for all reads. This is correct for fresh authenticated or draft reads, but it adds latency and API cost for public published content. Consider a separate CDN-enabled client for public reads; the CDN is not used with tokens or drafts anyway.",
+              "issue": "The file is TypeScript but uses CommonJS `require`/`module.exports`, which loses type information and mixes module systems. Use `import { createClient } from '@sanity/client'` and `export const client = createClient(...)`.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The file is typed as .ts but uses CommonJS require/module.exports, so it loses type information and is inconsistent with TypeScript and ESM tooling. Use `import { createClient } from '@sanity/client'` and export the client. The named createClient export also requires @sanity/client v6 or later.",
-              "apiVersionBoundary": null
-            },
-            {
-              "issue": "projectId and dataset are hardcoded. Move them to environment variables so staging and production datasets can be configured per environment.",
+              "issue": "`process.env.SANITY_TOKEN` is not validated. If it is undefined the client silently runs unauthenticated, and private datasets or drafts will fail with confusing errors. Fail fast when it is missing.",
               "apiVersionBoundary": null
             }
           ]
@@ -116,19 +104,19 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "`perspective: 'previewDrafts'` is deprecated. From API version 2025-02-19 it is replaced by the `drafts` perspective, and the default perspective also becomes `published`. The pinned apiVersion `2022-11-15` is old, so update it and switch to `perspective: 'drafts'`.",
+              "issue": "perspective 'previewDrafts' is deprecated and has been renamed to 'drafts'. Newer API versions (v2025-02-19 and later) use 'drafts', so update both the perspective and the apiVersion.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "`useCdn: true` is wrong for a preview client that reads drafts. The API CDN serves cached, published-oriented content, so draft content may be stale or missing, and authenticated draft requests should go to the live API. Set `useCdn: false` for preview or draft fetching.",
+              "issue": "useCdn: true conflicts with a draft-reading perspective and an authenticated token. Draft content is not served reliably from the CDN, and token-authenticated requests should not go through it, so preview/draft content may be stale or missing. Set useCdn: false for the preview client.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The preview token is read from `process.env.SANITY_PREVIEW_TOKEN` in a shared, exported client module. If this module is bundled client-side, the token can leak to the browser. Keep it server-only, or use a separate token-less client for public use.",
-              "apiVersionBoundary": null
+              "issue": "apiVersion '2022-11-15' is pinned to an old date. Since 2025-02-19 the default perspective is 'published' instead of 'raw', so behavior will change when you upgrade. Pin a recent date deliberately and test the perspective semantics.",
+              "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "`process.env.SANITY_PREVIEW_TOKEN` may be undefined, and no check is made. Drafts then silently fail to load, because the perspective returns only published content without a token. Validate that the token exists and fail loudly.",
+              "issue": "The preview token is read from process.env with no check that it exists. If it is undefined, the client silently falls back to unauthenticated requests and draft documents are not returned. Fail fast if the token is missing, and never expose this token to browser bundles. Use it only server-side, or use a viewer-scoped token.",
               "apiVersionBoundary": null
             }
           ]
@@ -151,31 +139,31 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "The query depends on the default perspective to see drafts. On apiVersion 2021-10-21 the default is 'raw', so drafts are visible. From 2025-02-19 the default perspective is 'published', and `path(\"drafts.**\")` would return nothing. Set `perspective: 'raw'` (or 'drafts' or 'previewDrafts' on newer versions) explicitly, or choose the apiVersion deliberately, so the behavior doesn't change when the version is bumped.",
+              "issue": "The `id` param is passed to `fetch` but the query never references `$id`. The query returns the first draft post it finds, not the draft with that ID, so `getDraft(id)` returns the wrong document. Filter on `_id == 'drafts.' + $id` or `_id == $draftId`, and pass the param under the name the query uses.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "The query relies on the default perspective including drafts (`raw`). That default applies only to API versions before 2025-02-19. From 2025-02-19 the default perspective is `published`, so `drafts.**` documents are excluded and the query returns null. Set `perspective` explicitly (`raw` or `drafts`) and don't depend on the apiVersion default.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "`id` is passed as a param but the query never references `$id`. The function therefore returns the first draft post it finds, not the draft with the given id. The query should filter with `_id == 'drafts.' + $id` or `_id == $draftId`.",
+              "issue": "`useCdn` is not set. Draft and authenticated reads must not go through the CDN, since drafts are not served by the APICDN and a token is ignored there. Set `useCdn: false` explicitly for this client.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "`useCdn` is not set. Draft content should be fetched with `useCdn: false`, because the CDN only serves published content and may serve stale data. The client also warns when `useCdn` is left unset in recent versions.",
-              "apiVersionBoundary": null
-            },
-            {
-              "issue": "A read/write token is configured on a client that may be bundled for the browser. Tokens that can read drafts must be used only server-side and kept out of client bundles, using a read-only (Viewer) token scoped to what is needed. `process.env.SANITY_TOKEN` may also be undefined, and nothing validates it.",
-              "apiVersionBoundary": null
-            },
-            {
-              "issue": "The apiVersion '2021-10-21' is old. Pin a recent date, and review the behavior changes (such as the default perspective) when updating it.",
+              "issue": "The apiVersion `2021-10-21` is old, and a hard-coded old date means you miss newer query and perspective behavior. Pin a recent date deliberately and review the changelog. Upgrading past 2025-02-19 will change the default perspective and break this draft query unless a perspective is set.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "`[0]` is used without an `order()`, so which draft is returned is nondeterministic. The `id` parameter is also untyped (implicit any) and the result has no type annotation, which fails under strict TypeScript.",
+              "issue": "`[0]` is used without `order()`, so which draft is returned is non-deterministic. Add an ordering such as `| order(_updatedAt desc)` before `[0]`.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The client is not exported and there is no `useCdn` or `perspective` configuration. `getDraft` is exported but depends on a module-private client, which makes it harder to reuse or test.",
+              "issue": "A read/write `token` is passed from `process.env.SANITY_TOKEN`. If this module is bundled for the browser, the token leaks. Keep the token server-side only, use a read-only Viewer token for drafts, and use a separate token-less client for public reads.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "The `client` is not exported and the `id` parameter has no type, so it is an implicit `any` under TypeScript strict mode. Type it as `id: string` and export the client for reuse.",
               "apiVersionBoundary": null
             }
           ]
@@ -195,27 +183,27 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "The projection `\"\": author->{name, image}` uses an empty-string key, which is invalid or unintended GROQ. The result will not have a usable `author` field. Use `\"author\": author->{name, image}`, or spread with `author->{name, image}` as a separate attribute.",
+              "issue": "The projection `\"\": author->{name, image}` uses an empty-string key, which is invalid GROQ or produces a nonsensical result. Use a named key such as `author->{name, image}` or `\"author\": author->{name, image}`.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The `slug` parameter is untyped, so it is implicitly `any` under strict TypeScript. Type it as `string`. Also type the fetch result, for example with TypeGen or a generic.",
+              "issue": "The `slug` parameter of `getPost` has no type, so it is an implicit `any` under strict TypeScript. Type it as `string`, and give the function a return type or use typed GROQ (for example with `defineQuery` and TypeGen).",
               "apiVersionBoundary": null
             },
             {
-              "issue": "`createClient` is used without an import from '@sanity/client' or 'next-sanity'.",
-              "apiVersionBoundary": null
-            },
-            {
-              "issue": "The apiVersion '2024-06-01' is pinned before the 2025-02-19 API version, where the default perspective changed from `raw` to `published`. The explicit `perspective: 'published'` hides this difference here. Any other client or query that relies on the default will behave differently depending on the apiVersion, so keep the explicit perspective and consider bumping the apiVersion deliberately.",
+              "issue": "The apiVersion '2024-06-01' is pinned before 2025-02-19. From that version the default perspective becomes 'published' (it was 'raw') and 'previewDrafts' is renamed 'drafts'. The explicit `perspective: 'published'` hides the difference for this client, but other code on this apiVersion, or code that omits the perspective, will behave differently. Consider updating the apiVersion and testing the queries.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "`useCdn: true` together with the `published` perspective is fine for public content, but the CDN can serve stale data right after publishing. For previews or draft content, use `useCdn: false` with a token and a `drafts`/`previewDrafts` perspective.",
+              "issue": "`image` is projected without dereferencing its asset (for example `image{..., asset->}`), so it returns only an asset reference. A URL builder can handle that, but direct URL access needs the dereferenced asset.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The `image` field is returned as a raw asset reference with no resolved URL. Use `image{..., asset->}` or `@sanity/image-url` to render it. `[0]` also returns null when no post matches, and the code does not handle that case.",
+              "issue": "`useCdn: true` together with `perspective: 'published'` is fine for public content. The CDN may serve slightly stale data, so don't use this client for previews or draft content. Use a separate client with a token and `useCdn: false` for those.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "There is no error handling or null handling. `[0]` returns null when no post matches the slug, so callers must handle null and fetch failures.",
               "apiVersionBoundary": null
             }
           ]
@@ -235,15 +223,19 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "The client is created but never used. The component returns null and fetches no related posts, so RelatedPosts is a stub that renders nothing. Add a GROQ query, typically in a useEffect or a data hook, and render the results.",
-              "apiVersionBoundary": null
-            },
-            {
-              "issue": "apiVersion '2023-08-01' is pinned before 2025-02-19, so queries use the default 'raw' perspective. That perspective can return both draft and published documents, giving duplicates or unpublished content in related-post lists. Either set perspective: 'published' explicitly, or move to apiVersion 2025-02-19 or later, where the default perspective is 'published'.",
+              "issue": "The pinned apiVersion '2023-08-01' is older than 2025-02-19, so queries default to the 'raw' perspective. That can return both draft and published documents, including duplicates. From 2025-02-19 the default is 'published'. Either bump the version and verify behavior, or set `perspective` explicitly.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "The hardcoded apiVersion string is inline and will drift. Define it once as a shared constant, or in config, and update it deliberately. Keeping versions consistent across the studio avoids surprises when behavior changes between dated API versions.",
+              "issue": "The `client` returned by useClient is never used. No query, fetch or listener runs, so the hook call has no effect.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "RelatedPosts always returns null and renders nothing. The related-posts logic (GROQ query, loading and error state, rendering) is missing.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "No GROQ query, document-ID or reference input, or data-fetching lifecycle (useEffect, state, cleanup) is defined. Any data fetch added later should run in an effect, with the client's `fetch` called inside it rather than during render.",
               "apiVersionBoundary": null
             }
           ]
@@ -257,37 +249,31 @@
             "listen-include-all-versions"
           ],
           "predicted": [
-            "versions-invisible-pre-2025",
-            "listen-include-all-versions"
+            "versions-invisible-pre-2025"
           ],
           "boundaries": {
-            "versions-invisible-pre-2025": "2025-02-19",
-            "listen-include-all-versions": null
+            "versions-invisible-pre-2025": "2025-02-19"
           },
           "cited": false,
           "rawIssues": [
             {
-              "issue": "The GROQ function sanity::versionOf() is used with apiVersion '2024-03-01', but it is only available in newer API versions (content releases / versioned documents). The query will fail or be unrecognized, so bump apiVersion to 2025-02-19 or later.",
+              "issue": "The GROQ function sanity::versionOf() is not available at apiVersion 2024-03-01. It requires API version 2025-02-19 or later (the content releases/versions support), so the query will fail or be rejected. Bump apiVersion to 2025-02-19 or newer.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "client.fetch() is called directly in the render body. It runs on every render, its result is discarded, and the promise has no catch handler. Move it into a useEffect or a data hook, store the result in state, and handle errors.",
+              "issue": "client.listen() returns a subscription that is never unsubscribed. This leaks a live connection on every render and unmount. It should be created in a useEffect and the subscription cleaned up in the effect's return.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "client.listen() is called during render and the subscription is never unsubscribed. Each render opens a new listener connection and leaks it. Create it in a useEffect and return a cleanup that calls subscription.unsubscribe().",
+              "issue": "client.fetch() and client.listen() are called directly in the render body, which is a side effect on every render. The fetch result is discarded and its promise is unhandled (no catch). Move both into useEffect or a data hook and store the result in state.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The listen subscribe callback is empty and has no error handler. Events are ignored, so the count never updates, and connection errors go unhandled.",
+              "issue": "The listener filter *[_id == $id] only matches the exact document ID. It will not match draft (drafts.<id>) or version (versions.<release>.<id>) documents, so it can miss changes that the versionOf count covers. Listen on a filter that covers those variants, such as sanity::versionOf($id) (needs 2025-02-19+) or explicit ID patterns.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The listener filter '*[_id == $id]' matches only one exact document ID. It will not receive events for draft or version documents (drafts.<id>, versions.<release>.<id>), which the versionOf query is meant to count. Use a filter such as sanity::versionOf($id) or match the related IDs.",
-              "apiVersionBoundary": null
-            },
-            {
-              "issue": "The component prop `{id}` has no type annotation, so it is implicitly `any` and fails under strict TypeScript. Type it as `{id: string}`.",
+              "issue": "The useClient instance is recreated on every render and the apiVersion is hard-coded and inconsistent with the features used. Memoize the client or use a shared constant API version. The props destructuring `{id}` also has no type annotation, so it is implicitly any under strict TypeScript.",
               "apiVersionBoundary": null
             }
           ]
@@ -307,23 +293,27 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "client.listen() returns a lazy observable, and nothing subscribes to it. No listener connection is ever opened, so the call does nothing. It needs .subscribe() and a stored subscription.",
+              "issue": "client.listen() returns a lazy Observable and nothing subscribes to it, so no listener connection is ever opened and the call does nothing. Call .subscribe() and unsubscribe on cleanup.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "listen() is called directly in the component body, so it runs on every render as a side effect. It should be in a useEffect that unsubscribes on cleanup (return () => sub.unsubscribe()), otherwise listeners leak.",
+              "issue": "The listener is created in the component render body, so it is a side effect that runs on every render. Move it into useEffect with a cleanup that unsubscribes, otherwise subscriptions leak and duplicate.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "useClient(...).withConfig(...) creates a new client instance on every render. Memoize it with useMemo, or fold the config into the useClient call, so effect dependencies stay stable.",
+              "issue": "useClient(...).withConfig(...) builds a new client on every render. Memoize it with useMemo, or create it once outside the component.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "perspective: 'raw' is set explicitly. From API version 2025-02-19 the default perspective is 'published' instead of 'raw', so this overrides the default and returns drafts and release versions alongside published documents in queries. That is likely unintended for a release tool; use 'published', 'drafts', or a release-specific perspective unless raw is intended. The perspective option also has no effect on listen().",
+              "issue": "The perspective is explicitly set to 'raw'. 'raw' was the default before apiVersion 2025-02-19, and from that version the default is 'published'. Setting 'raw' keeps the legacy behavior and returns drafts, published documents and release versions mixed together, which is wrong for a release tool. Use 'drafts', or a specific release or perspective stack, unless raw access is truly needed.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "includeAllVersions on listen() (events for drafts and release versions) is an experimental option that depends on a newer or experimental API version (vX) and may not be supported at the pinned apiVersion. The query passed to listen() also uses an empty params object and no event filtering such as visibility or events options, so it may receive more events than needed.",
+              "issue": "includeAllVersions on listen() is an experimental option that is not available on the stable dated API version used here ('2025-02-19'). It requires the experimental 'vX' apiVersion, so the option may be ignored or rejected. Use a dedicated client with apiVersion 'vX' for this listener, or drop the option.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "The listen query, '*[_type == \"post\"]', is unfiltered and has no projection. It will receive events for every post, and for every version (draft, published, release) when includeAllVersions is on. Narrow the filter and handle events by document ID, and note that a 'raw' perspective makes the version events harder to tell apart.",
               "apiVersionBoundary": null
             }
           ]
@@ -334,32 +324,36 @@
           "expected": [
             "listen-include-all-versions"
           ],
-          "predicted": [],
-          "boundaries": {},
+          "predicted": [
+            "apiVersion-missing"
+          ],
+          "boundaries": {
+            "apiVersion-missing": null
+          },
           "cited": false,
           "rawIssues": [
             {
-              "issue": "`client.listen()` returns a lazy Observable and nothing here subscribes to it. The caller must subscribe and unsubscribe, otherwise the listener connection leaks. Despite the name `useWatch`, this is not a React hook: it uses no useEffect or cleanup, and it creates a new Observable on every call.",
+              "issue": "The function is named useWatch like a React hook, but it just returns a raw RxJS Observable from client.listen(). Nothing subscribes to it and nothing unsubscribes on unmount, so the listener connection can leak. Subscribe inside useEffect and return a cleanup that calls subscription.unsubscribe().",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The filter `*[_id == $id]` only matches the exact document ID. If `id` is a published ID, changes to its `drafts.` counterpart are missed. Listen on both IDs, for example `*[_id in [$id, 'drafts.' + $id]]`, or use the `visibility` and `includeAllVersions` options as appropriate.",
+              "issue": "The client and id parameters are untyped, so the code relies on implicit any. Type client as SanityClient and id as string. The client must also be created with an explicit apiVersion (a dated YYYY-MM-DD string) and useCdn set to false, because listening does not work through the CDN.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "`includeResult: true` makes every event carry the full document body. This is wasteful for large documents. It is also redundant, because the default is already true. If you only need change notifications, use `includeResult: false`, or use `effectFormat: 'mendoza'` to receive patches instead of full documents.",
+              "issue": "The filter '*[_id == $id]' matches only the exact ID. If id is a published ID, changes to the draft (drafts.<id>) won't be received, and the reverse is also true. Listen to both IDs, for example '*[_id in [$id, \"drafts.\" + $id]]', or normalize the ID first.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "`client` and `id` are untyped parameters, so there is no `SanityClient` type and no result type. Event payloads end up as `any`. Type the client as `SanityClient` and the result generically.",
+              "issue": "includeResult: true makes every event carry the full document, which wastes bandwidth on large documents and on frequent edits. The option is also redundant, since the full result is already the default in recent client versions. Prefer the default mendoza effectFormat (the event's effects field) with includeResult: false if you only need to know that a change happened, or fetch the document separately after an event.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The client is not configured visibly here. Make sure it has an explicit `apiVersion` (a pinned date, not 'v1' or 'latest'), and a read token if the dataset is private. Listening also bypasses the CDN, so `useCdn: true` does not apply to listeners. The client also has no error handling or reconnect handling, because the `error` and `reconnect` events are not handled.",
+              "issue": "There is no error or reconnect handling, and no initial fetch. The listener only emits changes made after it connects, so the current document value is never delivered. Do a client.fetch() for the initial state, handle the 'welcome', 'reconnect', 'mutation' and 'disconnect' events, and add an error callback on subscribe.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "No `tag` option is set on the listener, which makes it hard to identify this listener in request logs and usage analytics. Also consider `events` options such as `includePreviousRevision` only if they are actually needed.",
+              "issue": "No visibility option is set. The default 'sync' is fine for most cases, but if you re-fetch after an event, use visibility: 'query' so the following fetch sees the change. With 'sync' there is a race between the event arriving and the document being queryable.",
               "apiVersionBoundary": null
             }
           ]
@@ -373,23 +367,23 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "apiVersion '2026-09-01' looks like a future or arbitrary date. Pin it to a real, tested API version date and bump it deliberately. Don't use a date you haven't verified, because query and perspective behavior is tied to the version.",
-              "apiVersionBoundary": null
-            },
-            {
-              "issue": "perspective: 'published' is redundant for apiVersion 2025-02-19 or later, where 'published' is already the default. On older versions the default was 'raw', so the explicit setting matters there. Keep it only if you want to make the intent explicit and stay safe if the apiVersion is lowered.",
+              "issue": "`perspective: 'published'` is redundant with this apiVersion. Since API version 2025-02-19 the default perspective is 'published' (it was 'raw' before), so you can drop the explicit setting. If you ever pin an apiVersion before that date, the explicit value becomes necessary to avoid draft documents being returned.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "useCdn: true serves cached data that can be slightly stale. That is fine for public published content, but use useCdn: false for server-side fetches that need fresh data, ISR/revalidation, or preview/draft perspectives. The CDN cannot serve drafts or authenticated requests.",
+              "issue": "apiVersion '2026-09-01' may be a future or unvetted date. Pin a real, tested date, or use a 'vX' experimental version only deliberately, so query behavior stays predictable.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "projectId and dataset are hardcoded. Read them from environment variables so you can switch between staging and production without code changes.",
+              "issue": "The `createClient` import from '@sanity/client' or 'next-sanity' is missing, so the snippet won't compile on its own.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The snippet is missing the import of createClient from '@sanity/client' (or 'next-sanity'). It will fail to compile as written.",
+              "issue": "`useCdn: true` serves cached content, which can be slightly stale. Use `useCdn: false` for server-side fetches that need fresh data, in draft or preview mode, or when using a token. The apiCdn is only suitable for published content.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "projectId and dataset are hardcoded. Prefer environment variables, so the same code works across dev, staging and production datasets.",
               "apiVersionBoundary": null
             }
           ]
@@ -403,27 +397,27 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "The `drafts` perspective is only valid at apiVersion 2025-02-19 or later. Before that it was called `previewDrafts`. `previewClient` inherits 2025-10-01 from `client`, so it works today. Lowering the pinned apiVersion later would silently break it, so keep the version at or above the boundary.",
+              "issue": "`perspective: 'published'` is redundant. From API version 2025-02-19 the default perspective is already `published` (previously `raw`). Setting it explicitly is harmless, and it makes the intent clear for older versions.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "`perspective: 'published'` is redundant at this apiVersion, because the default perspective changed from `raw` to `published` on 2025-02-19. Keeping it explicit is harmless and protects against an accidental apiVersion downgrade, which would revert the default to `raw`. Just be aware of it.",
+              "issue": "The `drafts` perspective (the renamed `previewDrafts`) only exists from API version 2025-02-19. It works with apiVersion 2025-10-01, but it would fail or need the old `previewDrafts` name if the apiVersion were pinned lower.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "`process.env.SANITY_VIEWER_TOKEN` is read in a module that may be bundled for the browser. In Next.js or Vite, either the variable will be undefined on the client, or it will be exposed publicly if given a NEXT_PUBLIC_ or VITE_ prefix. Keep `previewClient` server-only, for example with `import 'server-only'`, and never ship the token to the client.",
+              "issue": "`previewClient` reads a token from `process.env.SANITY_VIEWER_TOKEN` in the same module as the public client. If this module is imported in client-side code, the token can leak into the browser bundle. Move the preview client to a server-only module, and avoid `NEXT_PUBLIC_`-style env vars for the token.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "`previewClient` has no `stega` or `studioUrl` configuration. Visual Editing and Presentation click-to-edit overlays will not work without it, for example `stega: {enabled: true, studioUrl: '/studio'}`. If you do not use Visual Editing, ignore this.",
+              "issue": "`previewClient` has no `stega` config (`stega: {enabled: true, studioUrl}`) for visual editing or click-to-edit overlays. Add it if the preview is meant to support Presentation or Visual Editing.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "Both clients live in the same module and are exported without any guard against using `previewClient` outside draft mode. Draft content could leak to public visitors if it is used in non-preview code paths. Only use it when draft mode is enabled.",
+              "issue": "The token is only attached to `previewClient`, which is correct. If `token` is undefined because the env var is missing, the `drafts` perspective silently returns no draft content, so validate that the env var is set at startup.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "The snippet is missing `import {createClient} from '@sanity/client'` (or `next-sanity`).",
+              "issue": "`createClient` is not imported. Add `import {createClient} from '@sanity/client'` or `from 'next-sanity'`.",
               "apiVersionBoundary": null
             }
           ]
@@ -437,23 +431,27 @@
           "cited": false,
           "rawIssues": [
             {
-              "issue": "Array perspectives (perspective stacks) need apiVersion 2025-02-19 or later. '2025-03-01' meets this, so it is fine, but do not lower the version. Older versions reject or ignore array perspectives.",
+              "issue": "An array perspective (a release stack such as ['rSummer', 'drafts']) is only supported on API version 2025-02-19 or later. 2025-03-01 satisfies this, so there is no bug now. Do not lower apiVersion below the boundary, or the stack will be rejected or ignored.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "process.env.SANITY_VIEWER_TOKEN is typed string | undefined. If it is unset, the client silently has no token, so drafts and release content are not returned. Validate it at startup and fail loudly.",
+              "issue": "The perspective value 'drafts' replaced the older 'previewDrafts' name from 2025-02-19 onward. Using 'drafts' is correct here, but it would not be valid on older API versions.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "The client has a token and reads draft and release content. If this module is imported into browser code, the token is bundled and exposed. Keep it server-only, or create a separate tokenless client for public use.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "This client holds a token and reads drafts and releases. If the module is imported into browser or client-side code, the token ends up in the bundle. Keep it server-only, for example with 'server-only' or a separate server module, and use a tokenless client for public code.",
+              "issue": "useCdn: false is correct for a perspective that reads unpublished release and draft content, because the CDN does not serve it. Make sure nobody switches it to true. The cost is uncached, slower, and rate-limited requests, so use this client only for preview or release-preview routes.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "Check the stack order: 'drafts' sits after 'rSummer'. Make sure the priority is what you intend, because drafts can shadow or be shadowed by the release version of a document. Release IDs must be the bare release name (for example 'rSummer'), not the '_.releases.' prefixed document ID.",
+              "issue": "The release ID 'rSummer' is hard-coded. It breaks when the release is archived, published, or deleted, and the stack then silently returns different content. Load the release ID from config or an environment variable. The name 'releaseClient' also suggests it should be scoped to preview use only.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "useCdn: false is correct for authenticated draft and release reads, but every request hits the live API uncached. Use it only for preview or server contexts, and keep a separate CDN client with the 'published' perspective for production traffic.",
+              "issue": "The perspective stack is order-sensitive and 'published' is implicit at the end, so check that the order puts the release ahead of drafts as you intend. Raw or other single-name perspectives cannot be mixed into the array.",
               "apiVersionBoundary": null
             }
           ]
@@ -468,28 +466,24 @@
             "apiVersion-dynamic"
           ],
           "boundaries": {
-            "apiVersion-dynamic": null
+            "apiVersion-dynamic": "2025-02-19"
           },
           "cited": false,
           "rawIssues": [
             {
-              "issue": "apiVersion is computed dynamically from today's date. Every day it points to a new API version, so API behavior can change without any code change, and builds are not reproducible. Pin it to a fixed date string such as '2025-02-19' and upgrade deliberately.",
+              "issue": "apiVersion is computed dynamically from today's date. This defeats API versioning, because every day you silently opt into the newest behavior and any breaking change can alter query results without a code change. It also changes the CDN request URL each day, which hurts cache hit rates. Pin a fixed, reviewed date string such as '2025-02-19' and upgrade deliberately.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "Because the version is today's date, the client always lands after the 2025-02-19 boundary. From that version, queries default to the 'published' perspective instead of 'raw'. Drafts are no longer returned and results may differ from older pinned-version behavior. Set the perspective explicitly (for example perspective: 'published') so the intent is clear.",
+              "issue": "Because the version floats to the latest date, the default perspective is 'published' (drafts excluded) rather than the older 'raw' (drafts and published mixed). Behavior differs depending on whether the effective date is before or after 2025-02-19. Code written against 'raw' results, such as expecting drafts. will silently change. Set `perspective` explicitly and pin the version.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "useCdn: true is hard-coded for every environment. The CDN can return slightly stale data, and it does not support authenticated or draft/preview reads. Make it environment-dependent, for example useCdn: process.env.NODE_ENV === 'production', and use useCdn: false with a token for previews, SSR that needs fresh data, and webhook-triggered revalidation.",
+              "issue": "useCdn: true is set unconditionally. The CDN can serve slightly stale data and cannot be used for authenticated or draft/preview requests. For previews, drafts, server-side rendering that needs fresh data, or ISR revalidation or webhook-driven fetches, use a separate client with useCdn: false and a token. Consider setting it from the environment, for example `process.env.NODE_ENV === 'production'`.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "A changing apiVersion fragments the CDN cache, since the version is part of the request URL. Each day starts with cold caches, which undermines the benefit of useCdn: true.",
-              "apiVersionBoundary": null
-            },
-            {
-              "issue": "projectId and dataset are hard-coded. Move them to environment variables so different environments (staging, production) can be configured without code changes. No token is configured either, so private datasets or draft access would fail.",
+              "issue": "projectId and dataset are hardcoded rather than read from environment variables. This makes it harder to use different projects or datasets for staging and production, and it invites config drift.",
               "apiVersionBoundary": null
             }
           ]
@@ -500,10 +494,45 @@
           "expected": [
             "drafts-leak-raw-default"
           ],
-          "predicted": [],
-          "boundaries": {},
+          "predicted": [
+            "drafts-leak-raw-default",
+            "apiVersion-unresolved-env"
+          ],
+          "boundaries": {
+            "drafts-leak-raw-default": "2025-02-19",
+            "apiVersion-unresolved-env": null
+          },
           "cited": false,
-          "error": "No object generated: could not parse the response."
+          "rawIssues": [
+            {
+              "issue": "With a read token and an apiVersion before 2025-02-19, the default perspective is 'raw'. Queries can then return draft documents and duplicates alongside published ones. Set `perspective: 'published'` explicitly, and use 'drafts' or 'previewDrafts' only in preview mode with a token. From 2025-02-19 the default becomes 'published', but relying on that default is fragile.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "The fallback apiVersion '2023-06-21' is old. It misses the newer default-perspective behavior and other API changes. Pin a recent fixed date and upgrade deliberately after testing.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "apiVersion is read from an environment variable at runtime, so different environments can silently run with different API behavior. Hardcode a single pinned date in the config instead.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "projectId and dataset are hardcoded. Move them to environment variables (for example NEXT_PUBLIC_SANITY_PROJECT_ID and NEXT_PUBLIC_SANITY_DATASET) so staging and production can differ, and validate that they are set.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "useCdn is false for all queries, which gives up the faster, cached API CDN for published content. Use `useCdn: process.env.NODE_ENV === 'production'`, or keep a separate non-CDN client with the token for previews and drafts. The CDN is not used with drafts or tokens anyway.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "The token is attached to the shared client. If this client is imported into client-side code, the token is undefined in the browser. If it were ever exposed through NEXT_PUBLIC_*, it would leak. Keep the authenticated client server-only, and use a tokenless client for public published reads.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "The snippet does not import createClient from '@sanity/client' or 'next-sanity'. It also has no `stega` or `perspective` configuration, which preview and visual editing setups need.",
+              "apiVersionBoundary": null
+            }
+          ]
         },
         {
           "caseId": "tricky-env-only-and-raw",
@@ -512,27 +541,29 @@
             "apiVersion-unresolved-env"
           ],
           "predicted": [
-            "apiVersion-unresolved-env"
+            "apiVersion-unresolved-env",
+            "raw-now-includes-versions"
           ],
           "boundaries": {
-            "apiVersion-unresolved-env": null
+            "apiVersion-unresolved-env": null,
+            "raw-now-includes-versions": "2025-02-19"
           },
           "cited": false,
           "rawIssues": [
             {
-              "issue": "apiVersion comes from an env var that may be undefined. TypeScript types it as string | undefined. If it is unset, the client logs a warning and falls back to the legacy default API version (v1), so behavior silently differs between environments. Pin a fixed YYYY-MM-DD string in code (or validate the env var and fail fast) so query behavior is reproducible.",
+              "issue": "apiVersion comes from process.env.SANITY_API_VERSION, which may be undefined at runtime or at build time. The client then falls back to the legacy v1 API and logs a warning, and behavior can differ between environments. Pin a fixed date string such as '2025-02-19' in code.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "perspective: 'raw' returns both draft and published documents, so queries can return duplicates (drafts.* and published versions) and expose unpublished content when a token is present. Use 'published' for production reads, or 'drafts' (formerly 'previewDrafts') for preview. From API version 2025-02-19 the default perspective is 'published' rather than 'raw', so hard-coding 'raw' opts out of the safer default. The 'drafts' perspective name also replaced 'previewDrafts' at that version.",
+              "issue": "perspective: 'raw' returns both draft and published documents, including duplicates with drafts. and versions. prefixed IDs, so queries need manual filtering. The default perspective changed from 'raw' to 'published' at API version 2025-02-19, so 'raw' is now an explicit opt-out of the safer default. Use 'published' for production content, or 'drafts' (formerly 'previewDrafts') for previews.",
               "apiVersionBoundary": "2025-02-19"
             },
             {
-              "issue": "The token is read from process.env.SANITY_TOKEN and may be undefined. If this client is bundled for the browser, the token would leak. Keep authenticated clients server-only. Use a separate token-less client for public reads, or a read-only viewer token scoped for preview.",
+              "issue": "A token is set on a shared exported client. If this module is imported in browser-side code, the token leaks into the bundle. Keep authenticated clients server-only, use a read-only token, and create a separate token-less client for public use.",
               "apiVersionBoundary": null
             },
             {
-              "issue": "useCdn: false on a production dataset means every read hits the uncached API, which costs latency and API quota. That is only appropriate for authenticated or draft reads. For published public content, use a separate client with useCdn: true. Note that the CDN is bypassed for requests with a token or non-published perspectives.",
+              "issue": "useCdn: false means every request goes to the uncached API. That is only needed for fresh or draft reads. For published content in production, useCdn: true gives lower latency and cost, with a separate non-CDN client for previews. Note that a token combined with the CDN bypasses the cache.",
               "apiVersionBoundary": null
             }
           ]
@@ -540,13 +571,433 @@
       ],
       "metrics": {
         "cases": 15,
-        "errors": 1,
-        "precision": 0.8571428571428571,
+        "errors": 0,
+        "precision": 0.7058823529411765,
         "recall": 0.7058823529411765,
-        "exactCases": 10,
-        "boundaryCorrect": 5,
-        "boundaryTotal": 6,
+        "exactCases": 9,
+        "boundaryCorrect": 6,
+        "boundaryTotal": 7,
         "citedCases": 0,
+        "falseCriticalsOnModern": 0
+      }
+    },
+    "B": {
+      "results": [
+        {
+          "caseId": "tut-nextjs-2023-token",
+          "group": "tutorial",
+          "expected": [
+            "drafts-leak-raw-default"
+          ],
+          "predicted": [
+            "drafts-leak-raw-default",
+            "versions-invisible-pre-2025",
+            "projection-empty-string"
+          ],
+          "boundaries": {
+            "drafts-leak-raw-default": "2025-02-19",
+            "versions-invisible-pre-2025": "2025-02-19",
+            "projection-empty-string": "2025-02-19"
+          },
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "apiVersion '2023-05-03' is before 2025-02-19, so the default perspective is `raw`. `raw` returns drafts and published documents side by side, unmerged. With a read token that can see drafts, queries can return duplicate documents (`drafts.*` and published) and leak unpublished content to production pages. Set `perspective: 'published'` explicitly for production, or bump apiVersion to 2025-02-19 or later, where `published` is the default. If you bump, also check for code that relied on the old `raw` default.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "Content Releases features are unavailable on this pinned version. Release-ID perspective stacks, `includeAllVersions` on listen and doc, `sanity::versionOf`, `sanity::partOfRelease` and `releases::all()` need apiVersion 2025-02-19 or later. `versions.**` documents are also not returned on earlier versions. Bump the version before using releases or release previews.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "At 2025-02-19 and later, an empty-string key (`\"\"`) in a GROQ projection no longer expands into the parent object. Before that, it did. The current version still has the old behavior, so any query that relies on it needs the `...` spread when you bump.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "`useCdn: false` sends every read to the uncached API (`api.sanity.io`). That is fine for previews, drafts perspective and static builds. For production frontend reads with the `published` perspective, `useCdn: true` is recommended. It gives lower latency, scales without hitting direct-API rate and concurrency limits (CDN hits aren't rate limited), and the client has fetched from the CDN with a token since @sanity/client v3. Use separate clients or config: CDN on for published reads, CDN off for preview, drafts or release stacks.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "One client is used for everything, with a read token and no explicit `perspective`. Preview and draft use should be separate: a `drafts` or release-stack perspective with `useCdn: false`, using the token only on the server. Production should use `published`. Keep the token server-only; it is correctly not `NEXT_PUBLIC_`.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "`projectId` and `dataset` come from `process.env` with no fallback or assertion, so they can be `undefined` at runtime. Validate them and fail early. The apiVersion is a static literal, which is correct.",
+              "apiVersionBoundary": null
+            }
+          ]
+        },
+        {
+          "caseId": "tut-no-apiversion",
+          "group": "tutorial",
+          "expected": [
+            "apiVersion-missing",
+            "drafts-leak-raw-default"
+          ],
+          "predicted": [
+            "apiVersion-missing"
+          ],
+          "boundaries": {
+            "apiVersion-missing": "2025-02-19"
+          },
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "`apiVersion` is missing. The JS client logs a deprecation warning and defaults to the outdated `v1` API. Set a static literal date string such as '2026-07-28'. Don't compute it with `new Date()`, because that changes the pinned version every day.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "Because there is no `apiVersion`, the client runs on `v1` and queries default to the `raw` perspective. That returns drafts and published documents side by side, so draft content can leak into the results. From `v2025-02-19` the default perspective is `published`, and `raw` also includes `versions.**` documents. When you add an `apiVersion`, set `perspective` explicitly ('published' for production, or 'raw'/'drafts' if you need the old behavior). Also check any code that matches on `drafts.` path prefixes.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "`useCdn: false` combined with a `token` means every read goes straight to the live API. That is correct for guaranteed-fresh data, such as previews with the `drafts` perspective. For production published-content reads it gives up CDN latency and caching benefits. Consider `useCdn: true` with the `published` perspective. Since `@sanity/client` v3.0.0, a token together with `useCdn: true` is served from the CDN. Before v3 the token forced a CDN bypass.",
+              "apiVersionBoundary": null
+            }
+          ]
+        },
+        {
+          "caseId": "tut-preview-drafts-cdn",
+          "group": "tutorial",
+          "expected": [
+            "previewDrafts-deprecated",
+            "drafts-requires-no-cdn"
+          ],
+          "predicted": [
+            "drafts-requires-no-cdn",
+            "previewDrafts-deprecated",
+            "versions-invisible-pre-2025"
+          ],
+          "boundaries": {
+            "drafts-requires-no-cdn": null,
+            "previewDrafts-deprecated": null,
+            "versions-invisible-pre-2025": "2025-02-19"
+          },
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "`useCdn: true` is used together with the `previewDrafts` perspective. The drafts perspective is not cached by the CDN, so the client bypasses the CDN and logs a warning. Set `useCdn: false` for this preview client.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "`previewDrafts` is the old name for the `drafts` perspective. It still works, but the docs say `drafts` is preferred. Switch to `perspective: 'drafts'`.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "`apiVersion: '2022-11-15'` is older than `2025-02-19`. At that version, `versions.**` documents are not returned, and release-based perspective stacks and the `includeAllVersions` parameter on `/listen` and `/doc` are unavailable. Content Releases previews would need a bump. Also, the default perspective was `raw` before this date and is `published` from it onward. The explicit perspective setting avoids that default change. Bump the version in small steps and test.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "A preview token is combined with `useCdn: true`. Since @sanity/client v3.0.0, a token plus `useCdn: true` fetches from the CDN instead of bypassing it. A preview or draft-capable token should not be paired with the CDN. Authenticated requests are cached per token. The preview client should use `useCdn: false` so it gets fresh data.",
+              "apiVersionBoundary": null
+            }
+          ]
+        },
+        {
+          "caseId": "tut-drafts-path-query",
+          "group": "tutorial",
+          "expected": [
+            "drafts-leak-raw-default",
+            "bump-hides-drafts"
+          ],
+          "predicted": [
+            "bump-hides-drafts",
+            "drafts-requires-no-cdn",
+            "versions-invisible-pre-2025",
+            "drafts-leak-raw-default"
+          ],
+          "boundaries": {
+            "bump-hides-drafts": "2025-02-19",
+            "drafts-requires-no-cdn": "2025-02-19",
+            "versions-invisible-pre-2025": "2025-02-19",
+            "drafts-leak-raw-default": null
+          },
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "The query filters on `_id in path(\"drafts.**\")` and only works because the pinned apiVersion (2021-10-21) still defaults to the `raw` perspective. From v2025-02-19 the default perspective is `published`, which excludes drafts, so this query returns nothing once the version is bumped. The same bump makes `raw` include `versions.**` documents. Set the perspective explicitly (`perspective: 'drafts'` or `'raw'`) instead of relying on the implicit default and on path-prefix matching. With `drafts`, set `useCdn: false`.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "Path-prefix matching on `drafts.**` is the wrong way to read drafts. The docs recommend using perspectives to control which documents are returned. The `drafts` perspective overlays drafts onto published documents and adds `_originalId`. It isn't CDN-cached, so `useCdn` must be `false`, otherwise the client bypasses the CDN and logs a warning.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "The pinned apiVersion '2021-10-21' is old. It predates the Content Releases and perspective changes in v2025-02-19, so `versions.*` documents are not returned and release perspectives and the new GROQ functions are unavailable. Bump it deliberately to a static date string, after reading the changelog and testing, and prefer several small upgrades over one large jump.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "The `{id}` parameter is passed to `fetch`, but the GROQ query never references `$id`. As written, `getDraft(id)` ignores its argument and returns the first post draft, and `[0]` has no `order()`, so the result is not deterministic. To fetch one draft, filter by `_id == $id`, or by `_id == 'drafts.' + $id` if you want the draft only, rather than hard-coding the path filter.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "The client reads drafts with a token but doesn't set `useCdn` or `perspective`. Drafts require an authenticated request, and the docs say that from @sanity/client v3.0.0, passing a token with `useCdn: true` uses the CDN. Draft or preview reads should explicitly set `useCdn: false`. Keep the token server-side only.",
+              "apiVersionBoundary": null
+            }
+          ]
+        },
+        {
+          "caseId": "tut-empty-key-projection",
+          "group": "tutorial",
+          "expected": [
+            "projection-empty-string"
+          ],
+          "predicted": [
+            "projection-empty-string",
+            "versions-invisible-pre-2025"
+          ],
+          "boundaries": {
+            "projection-empty-string": "2025-02-19",
+            "versions-invisible-pre-2025": "2025-02-19"
+          },
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "The projection key `\"\": author->{name, image}` uses an empty-string key. At the pinned apiVersion 2024-06-01 it silently spreads the dereferenced author's fields into the parent object. From v2025-02-19 the API fixed this bug, so the key no longer expands and the result shape changes. Bumping apiVersion later would silently break this query. Replace it with the explicit spread `...author->{name, image}`, which works on both sides of the boundary.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "apiVersion 2024-06-01 is older than v2025-02-19. At this version the default perspective is still `raw`, and `versions.**` documents are not returned. The explicit `perspective: 'published'` is correct and protects against draft leakage, so keep it when you bump. Release-based perspectives and the newer GROQ functions (`sanity::versionOf`, `sanity::partOfRelease`, `releases::all`) are not available at this version.",
+              "apiVersionBoundary": "2025-02-19"
+            }
+          ]
+        },
+        {
+          "caseId": "studio-useclient-old",
+          "group": "studio",
+          "expected": [
+            "useClient-releases"
+          ],
+          "predicted": [
+            "drafts-leak-raw-default",
+            "useClient-releases",
+            "raw-bump-adds-versions"
+          ],
+          "boundaries": {
+            "drafts-leak-raw-default": "2025-02-19",
+            "useClient-releases": "2025-02-19",
+            "raw-bump-adds-versions": "2025-02-19"
+          },
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "apiVersion '2023-08-01' is before 2025-02-19, so queries from this client default to the `raw` perspective. `raw` returns drafts and published documents side by side, unmerged. That can surface `drafts.*` duplicates in a component like RelatedPosts. From 2025-02-19 the default is `published`. Set `perspective` explicitly, or bump the version after reviewing the changelog and testing.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "At this pinned version, `versions.**` (Content Release) documents are not returned. Release-based perspective stacks, `includeAllVersions` on `/listen` and `/doc`, and the `sanity::versionOf`, `sanity::partOfRelease` and `releases::all()` GROQ functions are also unavailable. Anything that targets Content Releases, including Studio plugins, needs apiVersion 2025-02-19 or later.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "If you bump to 2025-02-19 or later, also check the other breaking changes at that boundary. The `raw` perspective will include `versions.**` documents, so path-prefix checks for `drafts.` may behave unexpectedly. An empty-string key (`\"\"`) in a GROQ projection no longer expands into the parent object. Use the `...` spread operator if you relied on the old behavior. Bump deliberately and test, rather than computing the date at runtime.",
+              "apiVersionBoundary": "2025-02-19"
+            }
+          ]
+        },
+        {
+          "caseId": "studio-plugin-versions",
+          "group": "studio",
+          "expected": [
+            "useClient-releases",
+            "versions-invisible-pre-2025",
+            "listen-include-all-versions"
+          ],
+          "predicted": [
+            "versions-invisible-pre-2025",
+            "listen-include-all-versions"
+          ],
+          "boundaries": {
+            "versions-invisible-pre-2025": "2025-02-19",
+            "listen-include-all-versions": "2025-02-19"
+          },
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "`sanity::versionOf()` needs apiVersion 2025-02-19 or later. At the pinned '2024-03-01' the function isn't available, so the count query will not work. Bump apiVersion to '2025-02-19' or later. The function also expects a published document ID, not a `drafts.` or `versions.` ID.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "No `perspective` is set, so the result depends on the apiVersion. At '2024-03-01' the default is `raw`, which returns drafts and published documents unmerged. From 2025-02-19 the default becomes `published`, which excludes drafts and versions. After a bump, `count(*[sanity::versionOf($id)])` would then count only the published document. Set `perspective: 'raw'` explicitly to count all versions. Version documents are not returned at all on API versions before 2025-02-19.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "`client.listen` will not deliver version document changes at '2024-03-01'. The `includeAllVersions` option was added to `/listen` in 2025-02-19, and without it the listener won't receive version or draft changes. Bump the apiVersion and pass `includeAllVersions: true` if the badge needs to react to draft or version edits. The listener filter `*[_id == $id]` only matches the exact published ID.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "Side effects run in the component render body. `fetch` and `listen` execute on every render, and the subscription is never unsubscribed, so listeners leak. The fetch result is discarded and the promise has no error handling. Move both into `useEffect`, store the result in state, and return a cleanup that calls `subscription.unsubscribe()`.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "`useCdn` is not set, and the client is created with `useClient` on every render with no stated perspective or CDN intent. Release and draft content is never served from the CDN, so a client that reads drafts or versions should set `useCdn: false`.",
+              "apiVersionBoundary": null
+            }
+          ]
+        },
+        {
+          "caseId": "studio-useclient-modern-raw",
+          "group": "studio",
+          "expected": [
+            "raw-now-includes-versions"
+          ],
+          "predicted": [
+            "raw-now-includes-versions"
+          ],
+          "boundaries": {
+            "raw-now-includes-versions": "2025-02-19"
+          },
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "`client.listen(...)` is called directly in the component render body. Every re-render opens a new listener, and the listener is never cleaned up. It should be set up in a `useEffect` and torn down when the component unmounts. This is general React/client practice. The retrieved docs don't cover it.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "The result of `client.listen()` is never subscribed to or stored. `listen` returns an observable, so nothing is received without `.subscribe()`. There is also no handle to call `.unsubscribe()` on. The retrieved docs don't cover this. It comes from general knowledge of the client.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "`includeAllVersions: true` on `/listen` only exists from API version 2025-02-19. The pinned '2025-02-19' is exactly the minimum, so it works now. Lowering or changing the pin would silently drop the option and version/draft changes. The option also needs an authenticated request, and the code configures no token. In a Studio the `useClient` client normally carries the user's session, but this is not covered in the docs I retrieved. Content Releases and version documents also require Enterprise, and an `@sanity/client` of 7.8.0 or later.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "`perspective: 'raw'` is set explicitly, which is correct because the default became `published` at 2025-02-19. At this version, though, `raw` also returns `versions.**` documents alongside `drafts.**` and published ones. Any code that checks `drafts.` ID prefixes will see unexpected version documents. The `post` results and listener events may include the same post as published, draft and version copies. Prefer a `drafts` perspective or a release stack where possible, and handle `versions.*` IDs, for example with `@sanity/id-utils` or `getPublishedId`. Before 2025-02-19, `raw` was the implicit default and had no `versions.**` documents.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "I found nothing in the docs showing that the `perspective` set via `withConfig` applies to `listen`. The docs describe `perspective` for queries. Don't rely on it to control which document states the listener delivers. That is controlled by `includeAllVersions`.",
+              "apiVersionBoundary": null
+            }
+          ]
+        },
+        {
+          "caseId": "studio-listen-no-option",
+          "group": "studio",
+          "expected": [
+            "listen-include-all-versions"
+          ],
+          "predicted": [
+            "listen-include-all-versions"
+          ],
+          "boundaries": {
+            "listen-include-all-versions": "2025-02-19"
+          },
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "The query `*[_id == $id]` only matches the exact ID you pass. Drafts (`drafts.<id>`) and versions (`versions.<release>.<id>`) have different `_id` values, so a bare published ID never matches them. From v2025-02-19, `client.listen` needs `includeAllVersions: true` to receive draft and version document changes. Without it, a listener used for editing or preview will miss those changes. If you do want drafts or versions, filter on all the ID forms, for example with `sanity::versionOf()` or `@sanity/id-utils`. The docs I found say only that `includeAllVersions` is needed for draft and version changes. They don't say whether the default listener omits drafts on older versions.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "The client's `apiVersion` isn't visible here, because the `client` is passed in. It must be a hardcoded, static date string. If it is omitted, the client warns and defaults to the outdated `v1`. If it is computed from `new Date()`, the pinned version changes daily. Since listener and version behavior changes at v2025-02-19, check that the client is pinned to the version you intend. Plugins targeting Content Releases need `2025-02-19` or later.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "The listener shares the client's perspective, which isn't set here. From v2025-02-19 the default perspective changes from `raw` to `published`. Any preview or draft-aware code that relied on the implicit `raw` default may behave differently. Set the perspective explicitly. If you use `drafts` or a release stack, set `useCdn: false`.",
+              "apiVersionBoundary": "2025-02-19"
+            }
+          ]
+        },
+        {
+          "caseId": "modern-published",
+          "group": "modern",
+          "expected": [],
+          "predicted": [],
+          "boundaries": {},
+          "cited": true,
+          "rawIssues": []
+        },
+        {
+          "caseId": "modern-preview-split",
+          "group": "modern",
+          "expected": [],
+          "predicted": [],
+          "boundaries": {},
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "No functional problems found. The previewClient correctly sets useCdn: false for the drafts perspective, since drafts results are not CDN-cached and the client warns and bypasses the CDN otherwise. It also supplies a token, which draft access requires. The production client's use of useCdn: true with the published perspective matches the documented best practice. The apiVersion is a static literal date, as the docs recommend.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "perspective: 'published' on the base client is redundant at apiVersion 2025-10-01, because published became the default perspective at v2025-02-19. Keeping it is harmless and makes the intent explicit. Note that on any apiVersion before 2025-02-19 the default was raw, so the explicit setting would matter there. Also, previewClient inherits the pinned apiVersion from withConfig, so both clients share the same version.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "previewClient holds a token (SANITY_VIEWER_TOKEN). The docs I retrieved only say that drafts and versions are not served to unauthenticated requests. They don't cover token handling, so this is my own caution rather than a documented rule: keep this client server-side only so the token is not bundled into browser code. The docs also say that on the CDN, authenticated requests are cached per token. Here useCdn is false, so the token is not involved in CDN caching.",
+              "apiVersionBoundary": null
+            }
+          ]
+        },
+        {
+          "caseId": "modern-release-stack",
+          "group": "modern",
+          "expected": [],
+          "predicted": [],
+          "boundaries": {},
+          "cited": true,
+          "rawIssues": [
+            {
+              "issue": "Perspective order may not be what you intend. In a stack, the leftmost entry has the highest priority. With ['rSummer', 'drafts'], the release versions override drafts, so a draft edit to a document that is also in rSummer will not show. The docs' preview example puts drafts first: ['drafts', 'RELEASE_NAME']. If you want in-progress drafts to win over the release, use ['drafts', 'rSummer']. 'published' is appended automatically, so don't add it.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "The apiVersion '2025-03-01' is fine. Release-based perspective stacks need 2025-02-19 or later. On earlier versions only raw, published and drafts are accepted, and a stack returns HTTP 400 ('Complex perspectives are not supported for this version'). Don't lower this version. Also, since 2025-02-19 the default perspective is published and raw includes versions.** documents. Neither affects this client, because the perspective is set explicitly.",
+              "apiVersionBoundary": "2025-02-19"
+            },
+            {
+              "issue": "Content Releases are an Enterprise-only feature. The docs give a minimum @sanity/client of 7.8.0 for the release APIs. Make sure the installed client is at least that version and the project is on a plan with Releases. Otherwise the release perspective may not work.",
+              "apiVersionBoundary": null
+            },
+            {
+              "issue": "The token is named SANITY_VIEWER_TOKEN. Release and draft content needs a token that can read unpublished content, so confirm the token's role can read drafts and release versions. Otherwise you will only see published content or get auth errors. Also make sure the env var is defined at runtime, and keep this client server-side so the token isn't exposed.",
+              "apiVersionBoundary": null
+            }
+          ]
+        },
+        {
+          "caseId": "tricky-date-apiversion",
+          "group": "tricky",
+          "expected": [
+            "apiVersion-dynamic"
+          ],
+          "predicted": [],
+          "boundaries": {},
+          "cited": false,
+          "error": "fetch failed"
+        },
+        {
+          "caseId": "tricky-env-fallback-token",
+          "group": "tricky",
+          "expected": [
+            "drafts-leak-raw-default"
+          ],
+          "predicted": [],
+          "boundaries": {},
+          "cited": false,
+          "error": "fetch failed"
+        },
+        {
+          "caseId": "tricky-env-only-and-raw",
+          "group": "tricky",
+          "expected": [
+            "apiVersion-unresolved-env"
+          ],
+          "predicted": [],
+          "boundaries": {},
+          "cited": false,
+          "error": "fetch failed"
+        }
+      ],
+      "metrics": {
+        "cases": 15,
+        "errors": 3,
+        "precision": 0.6,
+        "recall": 0.7058823529411765,
+        "exactCases": 5,
+        "boundaryCorrect": 6,
+        "boundaryTotal": 7,
+        "citedCases": 12,
         "falseCriticalsOnModern": 0
       }
     },
