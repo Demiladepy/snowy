@@ -28,7 +28,7 @@ export default async function RulesPage() {
   const areas = [...new Set(rules.map((r) => r.area ?? 'other'))]
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 pt-32 md:px-6">
+    <div className="mx-auto max-w-[1200px] px-4 pt-12 md:px-6">
       <div className="grid gap-8 md:grid-cols-2">
         <div>
           <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-ash">Rule catalogue</p>

@@ -1,4 +1,7 @@
 import Link from 'next/link'
+import {DiscoverButton} from '@/components/block/discover-button'
+import {FlipText} from '@/components/block/flip-text'
+import RuleMarquee from './components/RuleMarquee'
 import {Eyebrow, RuleText} from './components/text'
 import {loadDocsFindings, loadRules} from '@/lib/rules'
 import {publicDatasetUrl} from '@/lib/sanity'
@@ -21,49 +24,85 @@ const TUTORIAL = [
 
 function Hero() {
   return (
-    <section className="px-3 pt-3 md:px-4 md:pt-4">
-      <div className="sky relative flex min-h-[88vh] items-end overflow-hidden rounded-3xl p-4 md:p-10">
-        <svg className="pointer-events-none absolute inset-x-0 bottom-0 h-40 w-full text-dusk/80" viewBox="0 0 1200 160" preserveAspectRatio="none" aria-hidden>
-          <path
-            fill="currentColor"
-            d="M0 160V110h40V80h30v30h25V60h35v50h20V90h40v20h30V50h18V30h6v20h18v60h40V85h35v25h25V70h45v40h30V95h40v15h35V40h25v70h30V88h45v22h20V65h40v45h35V100h30V75h40v35h25V55h30v55h40V92h35v18h30V70h40v40h30v50z"
-          />
-        </svg>
-        <div className="relative max-w-2xl rounded-3xl border border-white/20 bg-white/10 p-6 text-white backdrop-blur-md md:p-10">
-          <p className="text-[13px] font-medium uppercase tracking-[0.08em] text-white/80">A version-aware code reviewer for Sanity</p>
-          <h1 className="font-serif mt-3 text-[40px] leading-[1.1] tracking-[-0.02em] md:text-[54px]">Your apiVersion is a promise. Pinned reads the fine print.</h1>
-          <p className="mt-4 max-w-xl text-[16px] leading-[1.5] text-white/90">
-            Paste a Sanity client config. Pinned tells you what it does <em>today</em> at the version you pinned, what silently changes
-            when you bump it, and where Sanity’s own docs disagree with themselves. Every claim cites the docs.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center gap-3">
-            <Link href="/analyze" className="inline-flex items-center gap-2 rounded-lg border border-white px-3 py-[5px] text-[15px] font-medium text-white hover:bg-white/10">
-              Run the demo ops
-              <span className="grid h-5 w-5 place-items-center rounded-full border border-white/70 text-[11px]">→</span>
-            </Link>
-            <a href="#problem" className="text-[15px] font-medium text-white/85 underline-offset-4 hover:underline">
-              Why this exists
-            </a>
-          </div>
-        </div>
+    <section className="mx-auto max-w-[1200px] px-4 pt-16 text-center md:px-6 md:pt-24">
+      <span className="inline-flex items-center gap-2 rounded-full border border-mist bg-linen px-3 py-1 text-[13px] font-medium text-charcoal">
+        <span className="h-1.5 w-1.5 rounded-full bg-signal" />
+        Sanity Challenge · built on Sanity Context
+      </span>
+      <h1 className="font-serif mx-auto mt-6 max-w-4xl text-[44px] leading-[1.05] text-graphite md:text-[72px]">
+        Your apiVersion is a promise.
+        <br />
+        Pinned reads the{' '}
+        <FlipText className="text-signal" duration={2.6}>
+          fine print.
+        </FlipText>
+      </h1>
+      <p className="mx-auto mt-6 max-w-2xl text-[18px] leading-[1.55] text-ash md:text-[20px]">
+        Paste a Sanity client config. See what it does <em>today</em> at the version you pinned, what silently changes when you bump
+        it, and where Sanity’s own docs disagree with themselves, with every claim cited.
+      </p>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+        <DiscoverButton label="Run the demo ops" href="/analyze" />
+        <a href="#problem" className="text-[15px] font-medium text-charcoal underline decoration-fog underline-offset-4 hover:decoration-charcoal">
+          Why this exists ↓
+        </a>
       </div>
+      <ProductPreview />
     </section>
   )
 }
 
-function RuleMarquee({items}: {items: {ruleId: string; boundary?: string; severity: string}[]}) {
-  if (!items.length) return null
-  const row = [...items, ...items]
+function ProductPreview() {
   return (
-    <div className="marquee mt-10 overflow-hidden border-y border-mist bg-paper py-3" aria-label="Rules Pinned evaluates">
-      <div className="marquee-track flex w-max gap-3">
-        {row.map((r, i) => (
-          <a key={i} href={`/rules#${r.ruleId}`} className="flex shrink-0 items-center gap-2 rounded-lg border border-mist bg-linen px-3 py-1.5 text-[13px] text-charcoal hover:border-fog">
-            <span className={`h-1.5 w-1.5 rounded-full ${r.severity === 'critical' ? 'bg-critical' : r.severity === 'warning' ? 'bg-warning' : 'bg-info'}`} />
-            <code>{r.ruleId}</code>
-            {r.boundary ? <span className="text-ash">· {r.boundary}</span> : null}
-          </a>
-        ))}
+    <div className="mx-auto mt-14 max-w-5xl overflow-hidden rounded-2xl border border-mist bg-white text-left shadow-[var(--shadow-card)]">
+      <div className="flex items-center gap-2 border-b border-mist bg-linen px-4 py-2.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-fog" />
+        <span className="h-2.5 w-2.5 rounded-full bg-fog" />
+        <span className="h-2.5 w-2.5 rounded-full bg-fog" />
+        <span className="ml-3 truncate font-mono text-[12px] text-ash">pinned-snowy.vercel.app/analyze</span>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2">
+        <pre className="overflow-x-auto border-b border-mist p-4 font-mono text-[12px] leading-[1.75] text-charcoal md:border-b-0 md:border-r">
+          {TUTORIAL.map(([kind, text], i) => (
+            <div key={i} className={`-mx-4 flex px-4 ${kind === 'hit' ? 'bg-warning-bg' : kind === 'miss' ? 'bg-critical-bg text-critical' : ''}`}>
+              <span className="mr-4 w-4 select-none text-right text-fog">{i + 1}</span>
+              <span>{text || ' '}</span>
+            </div>
+          ))}
+        </pre>
+        <div className="space-y-3 p-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {['Parse', 'Rules', 'Evaluate', 'Explain'].map((s) => (
+              <span key={s} className="flex items-center justify-between rounded-md bg-ok-bg px-2 py-1 text-[11px] font-medium text-ok">
+                {s} <span aria-hidden>✓</span>
+              </span>
+            ))}
+          </div>
+          <div className="rounded-lg border border-mist p-3">
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className="rounded bg-critical-bg px-1.5 py-0.5 font-semibold uppercase text-critical">critical</span>
+              <span className="text-ash">line 6</span>
+              <span className="ml-auto rounded border border-signal/40 px-1.5 py-0.5 text-signal">Docs disagree here</span>
+            </div>
+            <div className="mt-2 text-[16px] font-semibold text-graphite">Unpublished drafts are served to your site</div>
+            <p className="mt-1 text-[13px] leading-[1.5] text-ash">
+              Token + apiVersion before 2025-02-19 + no perspective → default is <code>raw</code>, so <code>drafts.*</code> reach production.
+            </p>
+          </div>
+          <div className="rounded-lg bg-linen p-3">
+            <div className="flex items-center justify-between text-[11px] font-medium text-ash">
+              <span>apiVersion time machine</span>
+              <span className="font-mono text-signal">2025-02-19</span>
+            </div>
+            <div className="relative mt-2 h-1.5 rounded-full bg-mist">
+              <div className="absolute inset-y-0 left-0 w-[62%] rounded-full bg-graphite" />
+              <div className="absolute top-1/2 left-[62%] h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-graphite shadow" />
+            </div>
+            <p className="mt-2 text-[12px] text-charcoal">
+              Bump here → <span className="font-semibold">drafts-leak-raw-default</span> goes away
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -346,17 +385,14 @@ function Eval() {
 function Cta() {
   return (
     <section className="mx-auto mt-24 max-w-[1200px] px-4 md:px-6">
-      <div className="sky overflow-hidden rounded-3xl p-8 text-white md:p-16">
-        <h2 className="font-serif max-w-2xl text-[40px] leading-[1.1] tracking-[-0.02em] md:text-[54px]">Check the client you shipped last year.</h2>
-        <p className="mt-4 max-w-xl text-[16px] leading-[1.5] text-white/85">
+      <div className="rounded-3xl bg-linen px-6 py-14 text-center md:py-20">
+        <h2 className="font-serif mx-auto max-w-2xl text-[36px] leading-[1.1] text-graphite md:text-[52px]">Check the client you shipped last year.</h2>
+        <p className="mx-auto mt-4 max-w-xl text-[17px] leading-[1.5] text-ash">
           No login. Nothing stored. Findings in under a second, with explanations cited from Sanity’s docs.
         </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/analyze" className="inline-flex items-center gap-2 rounded-lg border border-white px-4 py-2 text-[15px] font-medium text-white hover:bg-white/10">
-            Open Pinned
-            <span className="grid h-5 w-5 place-items-center rounded-full border border-white/70 text-[11px]">→</span>
-          </Link>
-          <a href={publicDatasetUrl} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-lg border border-white/40 px-4 py-2 text-[15px] font-medium text-white/90 hover:bg-white/10">
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <DiscoverButton label="Open Pinned" href="/analyze" />
+          <a href={publicDatasetUrl} target="_blank" rel="noreferrer" className="text-[15px] font-medium text-charcoal underline decoration-fog underline-offset-4 hover:decoration-charcoal">
             Query the public dataset ↗
           </a>
         </div>
@@ -370,7 +406,12 @@ export default async function Home() {
   return (
     <>
       <Hero />
-      <RuleMarquee items={rules.map((r) => ({ruleId: r.ruleId, boundary: r.boundary?.apiVersion, severity: r.severity}))} />
+      <section className="mt-20 border-y border-mist bg-linen py-8">
+        <p className="mb-5 text-center text-[13px] font-medium text-ash">{rules.length} version-change rules, stored as Sanity documents. Drag to browse.</p>
+        <RuleMarquee
+          items={rules.map((r) => ({id: r.ruleId, ruleId: r.ruleId, title: r.title, boundary: r.boundary?.apiVersion, severity: r.severity}))}
+        />
+      </section>
       <Problem />
       <Thesis />
       <HowItWorks rulesCount={rules.length} />

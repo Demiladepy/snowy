@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import {DiscoverButton} from '@/components/block/discover-button'
 import {useMemo, useRef, useState} from 'react'
 import {ModelText, RuleText} from '../components/text'
 import {DEMO_OPS, TIME_MACHINE_STOPS, type DemoOp} from '@/lib/demos'
@@ -39,18 +40,18 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 function StatusPill({status, label}: {status: StageStatus | DemoStatus; label?: string}) {
   const map: Record<string, {cls: string; text: string; icon: React.ReactNode}> = {
-    queued: {cls: 'bg-linen text-ash border-mist', text: 'Queued', icon: <span className="h-1.5 w-1.5 rounded-full bg-fog" />},
+    queued: {cls: 'bg-linen text-ash border-transparent', text: 'Queued', icon: <span className="h-1.5 w-1.5 rounded-full bg-fog" />},
     running: {
-      cls: 'bg-info-bg text-info border-info/30',
+      cls: 'bg-info-bg text-info border-transparent',
       text: 'In progress',
       icon: <span className="h-3 w-3 animate-spin rounded-full border-[1.5px] border-info/30 border-t-info" />,
     },
     ready: {
-      cls: 'bg-paper text-graphite border-twilight/30',
+      cls: 'bg-ok-bg text-ok border-transparent',
       text: 'Ready',
       icon: (
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-          <circle cx="6" cy="6" r="6" className="fill-twilight" />
+          <circle cx="6" cy="6" r="6" className="fill-ok" />
           <path d="M3.5 6.2l1.6 1.6 3.4-3.6" stroke="white" strokeWidth="1.4" fill="none" strokeLinecap="round" />
         </svg>
       ),
@@ -95,7 +96,7 @@ function FindingCard({finding, explanation, highlight}: {finding: Finding; expla
           </Link>
         ) : null}
       </header>
-      <h3 className="font-serif mt-2 text-[24px] leading-[1.2] tracking-[-0.03em] text-graphite md:text-[27px]">
+      <h3 className="font-serif mt-2 text-[20px] leading-[1.3] text-graphite md:text-[22px]">
         <RuleText text={finding.title} />
       </h3>
       <code className="mt-1 block text-[12px] text-ash">{finding.ruleId}</code>
@@ -458,7 +459,7 @@ export default function Workbench({rules, rulesOrigin}: {rules: Rule[]; rulesOri
   const activeOp = DEMO_OPS.find((d) => d.id === activeDemo)
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] px-4 pt-28 md:px-6">
+    <div className="mx-auto w-full max-w-[1200px] px-4 pt-12 md:px-6">
       {/* Demo ops */}
       <section>
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -470,13 +471,14 @@ export default function Workbench({rules, rulesOrigin}: {rules: Rule[]; rulesOri
               {rulesOrigin === 'dataset' ? 'the Sanity dataset' : 'the bundled seed'}.
             </p>
           </div>
-          <button
-            onClick={() => (tour ? (stopTour.current = true) : void runTour())}
-            className="inline-flex items-center gap-2 rounded-lg border border-signal px-4 py-2 text-[15px] font-medium text-signal transition-colors hover:bg-signal/5"
-          >
-            {tour ? 'Stop the tour' : 'Run the full tour'}
-            <span className="grid h-5 w-5 place-items-center rounded-full border border-current text-[11px]">{tour ? '■' : '▶'}</span>
-          </button>
+          <DiscoverButton
+            className="is-compact"
+            label={tour ? 'Stop the tour' : 'Run the full tour'}
+            onClick={() => {
+              if (tour) stopTour.current = true
+              else void runTour()
+            }}
+          />
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {DEMO_OPS.map((op, i) => {
@@ -486,8 +488,8 @@ export default function Workbench({rules, rulesOrigin}: {rules: Rule[]; rulesOri
                 key={op.id}
                 onClick={() => void runDemo(op)}
                 disabled={busy}
-                className={`group rounded-xl border bg-paper p-4 text-left shadow-[var(--shadow-card)] transition-colors disabled:cursor-wait ${
-                  activeDemo === op.id ? 'border-twilight' : 'border-mist hover:border-fog'
+                className={`group rounded-xl border bg-paper p-4 text-left transition-colors hover:bg-linen disabled:cursor-wait ${
+                  activeDemo === op.id ? 'border-graphite ring-1 ring-graphite' : 'border-mist'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -540,25 +542,25 @@ export default function Workbench({rules, rulesOrigin}: {rules: Rule[]; rulesOri
           <button
             onClick={() => void analyze()}
             disabled={!canAnalyze}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-signal px-4 py-2.5 text-[15px] font-medium text-signal transition-colors hover:bg-signal/5 disabled:cursor-not-allowed disabled:border-fog disabled:text-fog"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-graphite px-4 py-2.5 text-[15px] font-medium text-white transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30"
           >
-            {busy ? 'Analyzing…' : 'Analyze'}
-            {!busy ? <span className="grid h-5 w-5 place-items-center rounded-full border border-current text-[11px]">→</span> : null}
+            {busy ? 'Analyzing…' : 'Analyze →'}
           </button>
           <p className="text-[13px] leading-[1.4] text-ash">Tokens and long secrets are redacted before anything reaches the LLM. Nothing is stored.</p>
         </div>
 
         <div className="space-y-4" aria-live="polite">
           {/* pipeline */}
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-mist bg-linen p-3">
+          <ol className="grid grid-cols-2 gap-2 rounded-xl border border-mist bg-linen p-2 sm:grid-cols-4">
             {STAGES.map(([id, label], i) => (
-              <span key={id} className="flex items-center gap-2">
-                {i > 0 ? <span className="text-fog">→</span> : null}
-                <span className="text-[12px] font-medium text-charcoal">{label}</span>
+              <li key={id} className="flex min-w-0 flex-col gap-1.5 rounded-lg bg-white px-3 py-2 shadow-[var(--shadow-diagram)]">
+                <span className="truncate text-[12px] font-medium text-ash">
+                  {i + 1}. {label}
+                </span>
                 <StatusPill status={stages[id]} />
-              </span>
+              </li>
             ))}
-          </div>
+          </ol>
 
           {error ? <div className="rounded-xl border border-critical/40 bg-critical-bg p-4 text-[15px] text-critical">{error}</div> : null}
           {!findings && !error ? (
